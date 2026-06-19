@@ -1,0 +1,31 @@
+[project]
+name = "data-ingestion-pipeline"
+version = "0.1.0"
+description = "Config-driven multi-source open-data ETL into PostgreSQL (Polars)."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "polars>=1.0",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+# Airflow is installed separately in the scheduler env with its official
+# constraints file (its dep tree is pinned per Python/Airflow version):
+#   uv pip install "apache-airflow==2.9.3" \
+#     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.3/constraints-3.11.txt"
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100

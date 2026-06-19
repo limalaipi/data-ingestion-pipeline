@@ -1,0 +1,63 @@
+# =====================================================================
+# Source Registry — GENERATED FROM THE GOOGLE SHEET
+# Regenerate with:  uv run python scripts/sync_registry.py
+# Additions live in config/sources_extra.yml (not overwritten).
+# ---------------------------------------------------------------------
+# schema = topic DOMAIN (environment / transport / public_safety / urban / society)
+# table  = {origin}_{dataset}   ·   group = origin (th/nyc/chicago/files, for DAGs)
+# topic  = fine-grained subject tag
+# =====================================================================
+
+defaults:
+  row_limit: 5000000
+  sample: recent
+  page_size: 50000
+
+sources:
+
+  # ===================== Thailand — ISOC opendata (PostgreSQL) =======
+  - {name: th_ddpm_report7disaster, group: th, topic: disaster, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_ddpm.report7disaster, target: {schema: environment, table: th_ddpm_report7disaster}}
+  - {name: th_ddpm_volunteer_protect_disaster_info, group: th, topic: disaster, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_ddpm.volunteer_protect_disaster_info, target: {schema: environment, table: th_ddpm_volunteer_protect_disaster_info}}
+  - {name: th_dwr_risk_drought_area, group: th, topic: disaster, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_dwr.risk_drought_area, target: {schema: environment, table: th_dwr_risk_drought_area}}
+  - {name: th_hii_rain_24_hist, group: th, topic: weather, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_hii.rain_24_hist, target: {schema: environment, table: th_hii_rain_24_hist}}
+  - {name: th_hii_rain_yearly_hist, group: th, topic: weather, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_hii.rain_yearly_hist, target: {schema: environment, table: th_hii_rain_yearly_hist}}
+  - {name: th_hii_temperature_hist, group: th, topic: weather, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_hii.temperature_hist, target: {schema: environment, table: th_hii_temperature_hist}}
+  - {name: th_hii_water_level_hist, group: th, topic: weather, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_hii.water_level_hist, target: {schema: environment, table: th_hii_water_level_hist}}
+  - {name: th_wo_hii_water_level_join_gistdacode, group: th, topic: weather, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: wo_hii.water_level_join_gistdacode, target: {schema: environment, table: th_wo_hii_water_level_join_gistdacode}}
+  - {name: th_opendata_air_quality_forecast_1day, group: th, topic: air_quality, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_opendata.air_quality_forecast_1day, target: {schema: environment, table: th_opendata_air_quality_forecast_1day}}
+  - {name: th_gistda_landuse_thailand, group: th, topic: land, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_gistda.landuse_thailand, target: {schema: urban, table: th_gistda_landuse_thailand}}
+  - {name: th_dopa_house_hist, group: th, topic: population, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_dopa.house_hist, target: {schema: society, table: th_dopa_house_hist}}
+  - {name: th_dopa_population_hist, group: th, topic: population, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_dopa.population_hist, target: {schema: society, table: th_dopa_population_hist}}
+  - {name: th_nesdc_tpmap_info_mooban, group: th, topic: poverty, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_nesdc.tpmap_info_mooban, target: {schema: society, table: th_nesdc_tpmap_info_mooban}}
+  - {name: th_dga_cgd_contract, group: th, topic: government, type: postgres, conn: isoc_opendata, exclude_prefix: _isoc, source: op_dga.cgd_contract, target: {schema: society, table: th_dga_cgd_contract}}
+
+  # ===================== Files / Object sources =====================
+  - {name: community_sensors, group: files, topic: iot, type: file, enabled: false, format: csv, url: "https://drive.google.com/drive/u/0/folders/1dwOU0n4sgRVbF54r38hUIrMJdUTMzZlL", note: "Drive folder; point to a single file or use a Drive connector", target: {schema: environment, table: files_community_sensors}}
+  - {name: nhm_collection_specimens, group: files, topic: nature, type: file, format: csv, url: "https://data.nhm.ac.uk/dataset/collection-specimens/resource/05ff2255-c38a-40c9-b657-4ccb55ab2feb/download", target: {schema: environment, table: files_nhm_collection_specimens}}
+  - {name: gbif_human_observation_download, group: files, topic: nature, type: file, enabled: false, format: zip_csv, url: "https://www.gbif.org/occurrence/download?basis_of_record=HUMAN_OBSERVATION", note: "Page URL; use the API entry in sources_extra.yml", target: {schema: environment, table: files_gbif_human_observation_download}}
+
+  # ===================== NYC Open Data (Socrata) ====================
+  - {name: nyc_motor_vehicle_collisions, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: h9gi-nx95, target: {schema: transport, table: nyc_motor_vehicle_collisions}}
+  - {name: nyc_parking_violations_issued, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: nc67-uf89, target: {schema: transport, table: nyc_parking_violations_issued}}
+  - {name: nyc_tlc_yellow_taxi, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: qp3b-zxtp, target: {schema: transport, table: nyc_tlc_yellow_taxi}}
+  - {name: nyc_tlc_green_taxi, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: 5gj9-2kzx, target: {schema: transport, table: nyc_tlc_green_taxi}}
+  - {name: nyc_tlc_fhv_trips, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: avxe-2nrn, target: {schema: transport, table: nyc_tlc_fhv_trips}}
+  - {name: nyc_nypd_complaint_historic, group: nyc, topic: public_safety, type: socrata, domain: data.cityofnewyork.us, resource: qgea-i56i, target: {schema: public_safety, table: nyc_nypd_complaint_historic}}
+  - {name: nyc_nypd_arrest_historic, group: nyc, topic: public_safety, type: socrata, domain: data.cityofnewyork.us, resource: 8h9b-rp9u, target: {schema: public_safety, table: nyc_nypd_arrest_historic}}
+  - {name: nyc_dob_job_application_filings, group: nyc, topic: buildings, type: socrata, domain: data.cityofnewyork.us, resource: ic3t-wcy2, target: {schema: urban, table: nyc_dob_job_application_filings}}
+  - {name: nyc_housing_maintenance_violations, group: nyc, topic: housing, type: socrata, domain: data.cityofnewyork.us, resource: wvxf-dwi5, target: {schema: urban, table: nyc_housing_maintenance_violations}}
+  - {name: nyc_pluto_tax_lot, group: nyc, topic: property, type: socrata, domain: data.cityofnewyork.us, resource: 64uk-42ks, target: {schema: urban, table: nyc_pluto_tax_lot}}
+  - {name: nyc_311_2020_present, group: nyc, topic: civic, type: socrata, domain: data.cityofnewyork.us, resource: erm2-nwe9, target: {schema: society, table: nyc_311_2020_present}}
+  - {name: nyc_311_2010_2019, group: nyc, topic: civic, type: socrata, domain: data.cityofnewyork.us, resource: 76ig-c548, target: {schema: society, table: nyc_311_2010_2019}}
+
+  # ===================== Chicago Open Data (Socrata) ================
+  - {name: chicago_traffic_crashes, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: 85ca-t3if, target: {schema: transport, table: chicago_traffic_crashes}}
+  - {name: chicago_traffic_crashes_vehicles, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: wrvz-psew, target: {schema: transport, table: chicago_traffic_crashes_vehicles}}
+  - {name: chicago_traffic_crashes_people, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: u6pd-qa9d, target: {schema: transport, table: chicago_traffic_crashes_people}}
+  - {name: chicago_tnp_trips, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: m6dm-c72p, target: {schema: transport, table: chicago_tnp_trips}}
+  - {name: chicago_traffic_congestion_segments, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: sxs8-h27x, target: {schema: transport, table: chicago_traffic_congestion_segments}}
+  - {name: chicago_transportation_permits, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: pubx-yq2d, target: {schema: transport, table: chicago_transportation_permits}}
+  - {name: chicago_crimes, group: chicago, topic: public_safety, type: socrata, domain: data.cityofchicago.org, resource: ijzp-q8t2, target: {schema: public_safety, table: chicago_crimes}}
+  - {name: chicago_building_violations, group: chicago, topic: buildings, type: socrata, domain: data.cityofchicago.org, resource: 22u3-xenr, target: {schema: urban, table: chicago_building_violations}}
+  - {name: chicago_business_licenses, group: chicago, topic: business, type: socrata, domain: data.cityofchicago.org, resource: r5kz-chrr, target: {schema: society, table: chicago_business_licenses}}
+  - {name: chicago_311_service_requests, group: chicago, topic: civic, type: socrata, domain: data.cityofchicago.org, resource: v6vf-nfxy, target: {schema: society, table: chicago_311_service_requests}}

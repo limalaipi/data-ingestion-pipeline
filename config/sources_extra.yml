@@ -1,0 +1,39 @@
+# =====================================================================
+# Hand-curated additions — NOT overwritten by scripts/sync_registry.py.
+# The 18 extra NYC datasets verified to have >=20 columns and >=1M rows,
+# plus a working GBIF API example. Defaults come from config/sources.yml.
+# schema = topic DOMAIN ; table = {origin}_{dataset} ; group = origin.
+# =====================================================================
+
+sources:
+
+  # ---- transport: NYC Parking Violations Issued, by fiscal year ----
+  - {name: nyc_parking_fy2023, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: pvqr-7yc4, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2023}}
+  - {name: nyc_parking_fy2022, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: 7mxj-7a6y, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2022}}
+  - {name: nyc_parking_fy2021, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: kvfd-bves, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2021}}
+  - {name: nyc_parking_fy2020, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: p7t3-5i9s, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2020}}
+  - {name: nyc_parking_fy2019, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: faiq-9dfq, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2019}}
+  - {name: nyc_parking_fy2018, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: a5td-mswe, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2018}}
+  - {name: nyc_parking_fy2017, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: 2bnn-yakx, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2017}}
+  - {name: nyc_parking_fy2016, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: kiv2-tbus, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2016}}
+  - {name: nyc_parking_fy2015, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: c284-tqph, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2015}}
+  - {name: nyc_parking_fy2014, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: jt7v-77mi, order_by: issue_date, target: {schema: transport, table: nyc_parking_fy2014}}
+
+  # ---- transport: NYC collisions detail tables ----
+  - {name: nyc_collisions_vehicles, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: bm4k-52h4, order_by: crash_date, target: {schema: transport, table: nyc_collisions_vehicles}}
+  - {name: nyc_collisions_person, group: nyc, topic: transport, type: socrata, domain: data.cityofnewyork.us, resource: f55k-p6yu, order_by: crash_date, target: {schema: transport, table: nyc_collisions_person}}
+
+  # ---- urban: NYC buildings + property ----
+  - {name: nyc_dob_permit_issuance, group: nyc, topic: buildings, type: socrata, domain: data.cityofnewyork.us, resource: ipu4-2q9a, order_by: issuance_date, target: {schema: urban, table: nyc_dob_permit_issuance}}
+  - {name: nyc_dob_ecb_violations, group: nyc, topic: buildings, type: socrata, domain: data.cityofnewyork.us, resource: 6bgk-3dad, order_by: issue_date, target: {schema: urban, table: nyc_dob_ecb_violations}}
+  - {name: nyc_dob_safety_violations, group: nyc, topic: buildings, type: socrata, domain: data.cityofnewyork.us, resource: 855j-jady, order_by: violation_issue_date, target: {schema: urban, table: nyc_dob_safety_violations}}
+  - {name: nyc_property_valuation, group: nyc, topic: property, type: socrata, domain: data.cityofnewyork.us, resource: yjxr-fw8i, order_by: year, target: {schema: urban, table: nyc_property_valuation}}
+
+  # ---- environment: NYC sanitation/health ----
+  - {name: nyc_rodent_inspection, group: nyc, topic: health, type: socrata, domain: data.cityofnewyork.us, resource: p937-wjvj, order_by: inspection_date, target: {schema: environment, table: nyc_rodent_inspection}}
+
+  # ---- public_safety: NYC OATH adjudication ----
+  - {name: nyc_oath_hearings, group: nyc, topic: justice, type: socrata, domain: data.cityofnewyork.us, resource: jz4z-kudi, order_by: violation_date, target: {schema: public_safety, table: nyc_oath_hearings}}
+
+  # ---- environment: working GBIF pull via the public API ----
+  - {name: gbif_human_observation, group: files, topic: nature, type: file, format: json, json_path: results, url: "https://api.gbif.org/v1/occurrence/search?basisOfRecord=HUMAN_OBSERVATION&limit=300", target: {schema: environment, table: files_gbif_human_observation}}
