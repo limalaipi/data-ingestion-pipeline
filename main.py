@@ -3,7 +3,9 @@
 
   uv run python main.py --list
   uv run python main.py --source nyc_collisions_person
-  uv run python main.py --group nyc
+  uv run python main.py --group nyc          # by origin
+  uv run python main.py --topic weather      # by topic tag
+  uv run python main.py --schema environment # by domain schema
   uv run python main.py --all
 """
 from __future__ import annotations
@@ -20,7 +22,9 @@ def main() -> None:
                         format="%(asctime)s %(levelname)s %(message)s")
     ap = argparse.ArgumentParser(description="data-ingestion-pipeline ETL runner")
     ap.add_argument("--source", help="run a single dataset by name")
-    ap.add_argument("--group", help="run all datasets in a group (nyc/chicago/isoc/files)")
+    ap.add_argument("--group", help="run all datasets in an origin group (th/nyc/chicago/files)")
+    ap.add_argument("--topic", help="run all datasets with this topic tag (e.g. weather, transport)")
+    ap.add_argument("--schema", help="run all datasets landing in this schema/domain (e.g. environment)")
     ap.add_argument("--all", action="store_true", help="run every dataset")
     ap.add_argument("--list", action="store_true", help="list registered datasets")
     ap.add_argument("--limit", type=int,
@@ -35,17 +39,23 @@ def main() -> None:
     reg = config.load_registry()
     if args.list:
         for s in reg:
-            print(f"{s['name']:40} {s['type']:9} group={s.get('group')}")
+            t = s["target"]
+            print(f"{s['name']:42} {s['type']:9} group={s.get('group') or '-':8} "
+                  f"schema={t['schema']:13} topic={s.get('topic')}")
         return
 
     if args.source:
         targets = [args.source]
     elif args.group:
         targets = [s["name"] for s in reg if s.get("group") == args.group]
+    elif args.topic:
+        targets = [s["name"] for s in reg if s.get("topic") == args.topic]
+    elif args.schema:
+        targets = [s["name"] for s in reg if s["target"]["schema"] == args.schema]
     elif args.all:
         targets = [s["name"] for s in reg]
     else:
-        ap.error("specify --source, --group, --all, or --list")
+        ap.error("specify --source, --group, --topic, --schema, --all, or --list")
 
     if args.clear:
         eng = db.warehouse_engine()

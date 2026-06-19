@@ -5,7 +5,9 @@ description = "Config-driven multi-source open-data ETL into PostgreSQL (Polars)
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "polars>=1.0",
+    # rtcompat build: runs on CPUs/VMs without AVX2/SSE4 (avoids SIGILL crash).
+    # On a modern CPU you can switch back to plain "polars>=1.0".
+    "polars[rtcompat]>=1.0",
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
     "requests>=2.31",

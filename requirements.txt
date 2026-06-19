@@ -1,5 +1,5 @@
 # pip fallback — source of truth is pyproject.toml (use `uv sync`).
-polars>=1.0
+polars[rtcompat]>=1.0   # CPU-compat build (no AVX2 required); plain "polars" on modern CPUs
 sqlalchemy>=2.0
 psycopg2-binary>=2.9
 requests>=2.31

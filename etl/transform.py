@@ -7,11 +7,35 @@ process() does the whole Transform step:
   - drop exact-duplicate rows
 """
 from __future__ import annotations
+import json
 import re
 
 import polars as pl
 
 _LEADING_ZERO = re.compile(r"^0[0-9]")
+
+
+def _to_json(v):
+    if v is None:
+        return None
+    if hasattr(v, "to_list"):       # polars passes list cells as Series
+        v = v.to_list()
+    return json.dumps(v, ensure_ascii=False, default=str)
+
+
+def _encode_nested(df: pl.DataFrame) -> pl.DataFrame:
+    """Serialize nested columns (Struct/List/Array) to JSON strings so they can
+    be written to CSV / COPY'd into a text column (e.g. Socrata `location`)."""
+    exprs = []
+    for c in df.columns:
+        bt = df.schema[c].base_type()
+        if bt == pl.Struct:
+            enc = pl.col(c).struct.json_encode()
+            # keep a null struct as real NULL (json_encode would emit "null")
+            exprs.append(pl.when(pl.col(c).is_null()).then(None).otherwise(enc).alias(c))
+        elif bt in (pl.List, pl.Array):
+            exprs.append(pl.col(c).map_elements(_to_json, return_dtype=pl.Utf8).alias(c))
+    return df.with_columns(exprs) if exprs else df
 
 
 def _norm(name: str) -> str:
@@ -42,6 +66,7 @@ def process(df: pl.DataFrame) -> pl.DataFrame:
         return df
 
     df = df.rename({c: _norm(c) for c in df.columns})
+    df = _encode_nested(df)         # nested -> JSON string (CSV/COPY can't hold nested)
 
     str_cols = [c for c, t in zip(df.columns, df.dtypes) if t == pl.Utf8]
     if str_cols:
