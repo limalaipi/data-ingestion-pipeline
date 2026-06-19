@@ -1,6 +1,7 @@
 """File / object connector: download CSV, ZIP-of-CSV, or JSON → Polars."""
 from __future__ import annotations
 import io
+import json
 import zipfile
 
 import polars as pl
@@ -8,6 +9,16 @@ import requests
 
 # many open-data hosts reject the default python-requests UA with 403
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; opendata-etl/1.0)"}
+
+
+def _stringify(v):
+    """Coerce a JSON value to a uniform string so messy API rows (where a field
+    is sometimes a scalar, sometimes a list) build into one consistent column."""
+    if v is None:
+        return None
+    if isinstance(v, (list, dict)):
+        return json.dumps(v, ensure_ascii=False, default=str)
+    return str(v)
 
 
 def _dig(data, path: str | None):
@@ -41,6 +52,8 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
                                infer_schema_length=None)
     if fmt == "json":
         rows = _dig(resp.json(), cfg.get("json_path"))
+        # uniform strings -> robust to inconsistent JSON schemas; process() types later
+        rows = [{k: _stringify(v) for k, v in r.items()} for r in rows]
         df = pl.DataFrame(rows, infer_schema_length=None)
         return df.head(n) if n is not None else df
     raise ValueError(f"unsupported file format: {fmt}")
