@@ -6,6 +6,18 @@ import zipfile
 import polars as pl
 import requests
 
+# many open-data hosts reject the default python-requests UA with 403
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; opendata-etl/1.0)"}
+
+
+def _dig(data, path: str | None):
+    """Walk a dotted json_path (e.g. 'result.records'); None -> whole payload."""
+    if not path:
+        return data
+    for key in path.split("."):
+        data = data.get(key, []) if isinstance(data, dict) else []
+    return data
+
 
 def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
     url = cfg["url"]
@@ -13,7 +25,7 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
     limit = cfg.get("row_limit")
     n = None if limit is None else int(limit)
 
-    resp = requests.get(url, timeout=300)
+    resp = requests.get(url, headers=HEADERS, timeout=300)
     resp.raise_for_status()
 
     if fmt == "csv":
@@ -28,9 +40,7 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
             return pl.read_csv(fh.read(), separator=sep, n_rows=n,
                                infer_schema_length=None)
     if fmt == "json":
-        data = resp.json()
-        path = cfg.get("json_path")
-        rows = data.get(path, data) if path else data
+        rows = _dig(resp.json(), cfg.get("json_path"))
         df = pl.DataFrame(rows, infer_schema_length=None)
         return df.head(n) if n is not None else df
     raise ValueError(f"unsupported file format: {fmt}")

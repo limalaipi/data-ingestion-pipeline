@@ -33,7 +33,7 @@ sources:
 
   # ===================== Files / Object sources =====================
   - {name: community_sensors, group: files, topic: iot, type: file, enabled: false, format: csv, url: "https://drive.google.com/drive/u/0/folders/1dwOU0n4sgRVbF54r38hUIrMJdUTMzZlL", note: "Drive folder; point to a single file or use a Drive connector", target: {schema: environment, table: files_community_sensors}}
-  - {name: nhm_collection_specimens, group: files, topic: nature, type: file, format: csv, url: "https://data.nhm.ac.uk/dataset/collection-specimens/resource/05ff2255-c38a-40c9-b657-4ccb55ab2feb/download", target: {schema: environment, table: files_nhm_collection_specimens}}
+  - {name: nhm_collection_specimens, group: files, topic: nature, type: file, format: json, json_path: result.records, url: "https://data.nhm.ac.uk/api/3/action/datastore_search?resource_id=05ff2255-c38a-40c9-b657-4ccb55ab2feb&limit=1000", target: {schema: environment, table: files_nhm_collection_specimens}}
   - {name: gbif_human_observation_download, group: files, topic: nature, type: file, enabled: false, format: zip_csv, url: "https://www.gbif.org/occurrence/download?basis_of_record=HUMAN_OBSERVATION", note: "Page URL; use the API entry in sources_extra.yml", target: {schema: environment, table: files_gbif_human_observation_download}}
 
   # ===================== NYC Open Data (Socrata) ====================
