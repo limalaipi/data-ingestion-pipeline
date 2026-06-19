@@ -19,12 +19,18 @@ _PG_TYPE = {
 }
 
 
+# fail fast instead of hanging ~2 min when a source DB is unreachable (e.g. VPN down)
+CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
+
+
 def warehouse_engine() -> Engine:
-    return create_engine(os.environ["WAREHOUSE_URL"], future=True)
+    return create_engine(os.environ["WAREHOUSE_URL"], future=True,
+                         connect_args={"connect_timeout": CONNECT_TIMEOUT})
 
 
 def source_engine(conn_name: str) -> Engine:
-    return create_engine(os.environ[f"{conn_name.upper()}_URL"], future=True)
+    return create_engine(os.environ[f"{conn_name.upper()}_URL"], future=True,
+                         connect_args={"connect_timeout": CONNECT_TIMEOUT})
 
 
 def ensure_schema(engine: Engine, schema: str) -> None:
