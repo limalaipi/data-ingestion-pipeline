@@ -14,6 +14,9 @@ import polars as pl
 
 _LEADING_ZERO = re.compile(r"^0[0-9]")
 
+# case-insensitive string values that should become a real SQL NULL
+_NULL_TOKENS = ["null", "(null)", "n/a", "na", "none", "nan", "nil"]
+
 
 def _to_json(v):
     if v is None:
@@ -71,9 +74,12 @@ def process(df: pl.DataFrame) -> pl.DataFrame:
     str_cols = [c for c, t in zip(df.columns, df.dtypes) if t == pl.Utf8]
     if str_cols:
         df = df.with_columns(pl.col(str_cols).str.strip_chars())
+        # "" and null-like sentinels ("null", "N/A", "None", ...) -> real NULL
         df = df.with_columns(
-            pl.when(pl.col(str_cols).str.len_chars() == 0)
-              .then(None).otherwise(pl.col(str_cols)).name.keep())
+            pl.when(
+                (pl.col(str_cols).str.len_chars() == 0)
+                | pl.col(str_cols).str.to_lowercase().is_in(_NULL_TOKENS)
+            ).then(None).otherwise(pl.col(str_cols)).name.keep())
 
     casts = []
     for c in str_cols:
