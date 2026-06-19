@@ -1,9 +1,9 @@
-"""End-to-end run for one dataset:  Extract -> Polars process -> Load -> QA.
+"""End-to-end run for one dataset, STREAMED page by page:
+   extract batch -> process (all-text) -> COPY append -> repeat.
 
-Used by both the Airflow DAG and the local CLI (run_local.py).
-Each run REPLACES the target table with the latest (capped) data. Optional
-watermark incremental is honored for postgres sources whose `incremental.column`
-is present in the data.
+Constant memory regardless of table size. Each run REPLACES the target table
+(first batch drops+creates; later batches append). Columns land as text — cast
+in SQL at query time. Optional watermark incremental is honored for postgres.
 """
 from __future__ import annotations
 import logging
@@ -34,31 +34,41 @@ def run_dataset(name: str) -> dict:
     try:
         inc = cfg.get("incremental", {}) or {}
         wm = state.get_watermark(eng, name) if inc.get("mode") == "watermark" else None
+        wm_col = (inc.get("column") or "").lstrip(":").lower()
+        schema, table = cfg["target"]["schema"], cfg["target"]["table"]
 
-        raw = ex.extract(cfg, wm)
-        log.info("[%s] extracted %d rows", name, raw.height)
-        if raw.is_empty():
+        total = 0
+        created = False
+        next_wm = None
+        for raw in ex.iter_batches(cfg, wm):       # one page at a time
+            drop_cols = _columns_to_drop(cfg, raw.columns)
+            if drop_cols:
+                raw = raw.drop(drop_cols)
+            df = transform.process(raw, to_text=True)
+            if df.is_empty():
+                continue
+            if not created:
+                db.begin_table(eng, schema, table, df.columns)   # drop + create
+                created = True
+            else:
+                db.add_columns(eng, schema, table, df.columns)   # sparse new cols
+            total += db.copy_append(eng, df, schema, table, name, batch_id)
+            log.info("[%s] loaded %d rows so far", name, total)
+            if inc.get("mode") == "watermark" and wm_col in df.columns:
+                m = df[wm_col].max()
+                next_wm = m if next_wm is None else max(next_wm, m)
+
+        if not created:
             state.finish_run(eng, batch_id, "success", 0, "no rows")
             return {"source": name, "rows": 0, "status": "success"}
 
-        drop_cols = _columns_to_drop(cfg, raw.columns)
-        if drop_cols:
-            raw = raw.drop(drop_cols)
-            log.info("[%s] dropped columns: %s", name, drop_cols)
+        report = quality.check_table(eng, schema, table)
+        if inc.get("mode") == "watermark" and next_wm is not None:
+            state.set_watermark(eng, name, str(next_wm))
 
-        df = transform.process(raw)
-        t = cfg["target"]
-        n = db.load_table(eng, df, t["schema"], t["table"], name, batch_id)
-        report = quality.check_table(eng, t["schema"], t["table"])
-
-        # advance watermark from the (normalized) incremental column if present
-        col = (inc.get("column") or "").lstrip(":").lower()
-        if inc.get("mode") == "watermark" and col in df.columns:
-            state.set_watermark(eng, name, str(df[col].max()))
-
-        state.finish_run(eng, batch_id, "success", n, f"loaded={n} qa={report}")
-        log.info("[%s] done rows=%d", name, n)
-        return {"source": name, "rows": n, "status": "success",
+        state.finish_run(eng, batch_id, "success", total, f"loaded={total} qa={report}")
+        log.info("[%s] done rows=%d", name, total)
+        return {"source": name, "rows": total, "status": "success",
                 "batch_id": batch_id}
     except Exception as e:  # noqa: BLE001
         state.finish_run(eng, batch_id, "failed", 0, str(e))

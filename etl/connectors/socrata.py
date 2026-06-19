@@ -1,23 +1,23 @@
-"""Socrata connector (NYC, Chicago, ...) → Polars.
+"""Socrata connector (NYC, Chicago, ...) → Polars, streamed page by page.
 
-Uses keyset pagination on the system :id column (`$order=:id` + `$where=:id > last`)
-instead of deep `$offset`, so the server never rescans skipped rows — far faster
-and avoids IncompleteRead / SSL EOF on large datasets. Transient network errors
-are retried with exponential backoff.
+Keyset pagination on the system :id column (`$order=:id` + `$where=:id > last`)
+instead of deep `$offset`, so the server never rescans skipped rows — fast and
+avoids IncompleteRead / SSL EOF on large datasets. Transient errors are retried
+with exponential backoff. `iter_batches` yields one frame per page (constant RAM).
 """
 from __future__ import annotations
 import logging
 import os
 import time
+from typing import Iterator
 
 import polars as pl
 import requests
 
 log = logging.getLogger("etl.socrata")
 
-# transient errors worth retrying (SSLError is a subclass of ConnectionError)
 _TRANSIENT = (
-    requests.exceptions.ConnectionError,
+    requests.exceptions.ConnectionError,   # incl. SSLError
     requests.exceptions.Timeout,
     requests.exceptions.ChunkedEncodingError,
 )
@@ -45,23 +45,24 @@ def _get_json(sess: requests.Session, url: str, params: dict, retries: int = 6):
             time.sleep(wait)
 
 
-def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
+def iter_batches(cfg: dict, watermark: str | None = None) -> Iterator[pl.DataFrame]:
+    """Yield one Polars frame per page (keyset by :id)."""
     base = f"https://{cfg['domain']}/resource/{cfg['resource']}.json"
     headers = {}
     token = os.getenv("SOCRATA_APP_TOKEN")
-    if token:                              # raises rate limits a lot
+    if token:
         headers["X-App-Token"] = token
 
     limit = cfg.get("row_limit")
     page = int(cfg.get("page_size", 20000))
     name = cfg.get("name", cfg["resource"])
 
-    rows: list[dict] = []
+    fetched = 0
     last_id: str | None = None
-    with requests.Session() as sess:       # keep-alive across pages
+    with requests.Session() as sess:
         sess.headers.update(headers)
         while True:
-            take = page if limit is None else min(page, limit - len(rows))
+            take = page if limit is None else min(page, limit - fetched)
             if take <= 0:
                 break
             params = {"$select": ":*, *", "$order": ":id", "$limit": take}
@@ -71,11 +72,16 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
             if not chunk:
                 break
             last_id = chunk[-1].get(":id")
-            # keep data columns only; ':' system fields are for paging
-            rows.extend({k: v for k, v in rec.items() if not k.startswith(":")}
-                        for rec in chunk)
-            log.info("%s: fetched %d rows", name, len(rows))
+            recs = [{k: v for k, v in r.items() if not k.startswith(":")}
+                    for r in chunk]
+            fetched += len(chunk)
+            log.info("%s: fetched %d rows", name, fetched)
+            yield pl.DataFrame(recs, infer_schema_length=None)
             if len(chunk) < take or last_id is None:
                 break
 
-    return pl.DataFrame(rows, infer_schema_length=None) if rows else pl.DataFrame()
+
+def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
+    """Non-streaming convenience: concatenate all pages into one frame."""
+    frames = [b for b in iter_batches(cfg, watermark) if not b.is_empty()]
+    return pl.concat(frames, how="diagonal_relaxed") if frames else pl.DataFrame()

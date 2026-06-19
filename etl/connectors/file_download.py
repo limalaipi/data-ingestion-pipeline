@@ -57,3 +57,10 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
         df = pl.DataFrame(rows, infer_schema_length=None)
         return df.head(n) if n is not None else df
     raise ValueError(f"unsupported file format: {fmt}")
+
+
+def iter_batches(cfg: dict, watermark: str | None = None):
+    """File sources are one-shot (already capped by row_limit) -> a single batch."""
+    df = extract(cfg, watermark)
+    if not df.is_empty():
+        yield df

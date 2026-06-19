@@ -64,12 +64,18 @@ def _maybe_numeric(s: pl.Series) -> pl.Series | None:
     return None
 
 
-def process(df: pl.DataFrame) -> pl.DataFrame:
+def process(df: pl.DataFrame, to_text: bool = False) -> pl.DataFrame:
+    """Clean a frame. With to_text=True every column is cast to text so each
+    streamed batch has an identical schema (safe for page-by-page COPY); numeric
+    typing is then skipped (cast in SQL at query time)."""
     if df.is_empty():
         return df
 
     df = df.rename({c: _norm(c) for c in df.columns})
     df = _encode_nested(df)         # nested -> JSON string (CSV/COPY can't hold nested)
+
+    if to_text:                     # uniform text schema across all batches
+        df = df.with_columns(pl.all().cast(pl.Utf8, strict=False))
 
     str_cols = [c for c, t in zip(df.columns, df.dtypes) if t == pl.Utf8]
     if str_cols:
@@ -81,12 +87,13 @@ def process(df: pl.DataFrame) -> pl.DataFrame:
                 | pl.col(str_cols).str.to_lowercase().is_in(_NULL_TOKENS)
             ).then(None).otherwise(pl.col(str_cols)).name.keep())
 
-    casts = []
-    for c in str_cols:
-        out = _maybe_numeric(df[c])
-        if out is not None:
-            casts.append(out.alias(c))
-    if casts:
-        df = df.with_columns(casts)
+    if not to_text:                 # best-effort numeric typing (in-memory path only)
+        casts = []
+        for c in str_cols:
+            out = _maybe_numeric(df[c])
+            if out is not None:
+                casts.append(out.alias(c))
+        if casts:
+            df = df.with_columns(casts)
 
     return df.unique(maintain_order=True)
