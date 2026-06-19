@@ -23,4 +23,6 @@ def extract(cfg: dict, watermark: str | None = None) -> pl.DataFrame:
 
     sql = f"SELECT * FROM {source}{where}{order}{lim}"
     with eng.connect() as cx:
-        return pl.read_database(sql, connection=cx)
+        # infer_schema_length=None -> scan all rows before picking a dtype, so a
+        # column that is NULL early then text later (e.g. Thai) doesn't break
+        return pl.read_database(sql, connection=cx, infer_schema_length=None)

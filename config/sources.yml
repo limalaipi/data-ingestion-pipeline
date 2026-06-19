@@ -9,9 +9,9 @@
 # =====================================================================
 
 defaults:
-  row_limit: 5000000
+  row_limit: 1000000
   sample: recent
-  page_size: 50000
+  page_size: 20000
 
 sources:
 
