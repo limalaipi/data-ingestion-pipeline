@@ -49,6 +49,10 @@ sources:
   - {name: nyc_pluto_tax_lot, group: nyc, topic: property, type: socrata, domain: data.cityofnewyork.us, resource: 64uk-42ks, target: {schema: urban, table: nyc_pluto_tax_lot}}
   - {name: nyc_311_2020_present, group: nyc, topic: civic, type: socrata, domain: data.cityofnewyork.us, resource: erm2-nwe9, target: {schema: society, table: nyc_311_2020_present}}
   - {name: nyc_311_2010_2019, group: nyc, topic: civic, type: socrata, domain: data.cityofnewyork.us, resource: 76ig-c548, target: {schema: society, table: nyc_311_2010_2019}}
+  # new
+  - {name: nyc_property_valuation, group: nyc, topic: property, type: socrata, domain: data.cityofnewyork.us, resource: yjxr-fw8i, order_by: year, target: {schema: urban, table: nyc_property_valuation}}
+  - {name: nyc_rodent_inspection, group: nyc, topic: health, type: socrata, domain: data.cityofnewyork.us, resource: p937-wjvj, order_by: inspection_date, target: {schema: environment, table: nyc_rodent_inspection}}
+  - {name: nyc_oath_hearings, group: nyc, topic: justice, type: socrata, domain: data.cityofnewyork.us, resource: jz4z-kudi, order_by: violation_date, target: {schema: public_safety, table: nyc_oath_hearings}}
 
   # ===================== Chicago Open Data (Socrata) ================
   - {name: chicago_traffic_crashes, group: chicago, topic: transport, type: socrata, domain: data.cityofchicago.org, resource: 85ca-t3if, target: {schema: transport, table: chicago_traffic_crashes}}
