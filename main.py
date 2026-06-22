@@ -39,9 +39,7 @@ def main() -> None:
     reg = config.load_registry()
     if args.list:
         for s in reg:
-            t = s["target"]
-            print(f"{s['name']:42} {s['type']:9} group={s.get('group') or '-':8} "
-                  f"schema={t['schema']:13} topic={s.get('topic')}")
+            print(s["name"])
         return
 
     if args.source:

@@ -6,6 +6,7 @@ avoids IncompleteRead / SSL EOF on large datasets. Transient errors are retried
 with exponential backoff. `iter_batches` yields one frame per page (constant RAM).
 """
 from __future__ import annotations
+import json
 import logging
 import os
 import time
@@ -15,6 +16,16 @@ import polars as pl
 import requests
 
 log = logging.getLogger("etl.socrata")
+
+
+def _stringify(v):
+    """Coerce every JSON value to text at ingest so a column that is int in one
+    row and float (or nested) in another doesn't break frame construction."""
+    if v is None:
+        return None
+    if isinstance(v, (list, dict)):
+        return json.dumps(v, ensure_ascii=False, default=str)
+    return str(v)
 
 _TRANSIENT = (
     requests.exceptions.ConnectionError,   # incl. SSLError
@@ -72,7 +83,7 @@ def iter_batches(cfg: dict, watermark: str | None = None) -> Iterator[pl.DataFra
             if not chunk:
                 break
             last_id = chunk[-1].get(":id")
-            recs = [{k: v for k, v in r.items() if not k.startswith(":")}
+            recs = [{k: _stringify(v) for k, v in r.items() if not k.startswith(":")}
                     for r in chunk]
             fetched += len(chunk)
             log.info("%s: fetched %d rows", name, fetched)

@@ -29,7 +29,9 @@ def iter_batches(cfg: dict, watermark: str | None = None) -> Iterator[pl.DataFra
     eng = source_engine(cfg["conn"])
     page = int(cfg.get("page_size", 20000))
     sql = _build_sql(cfg, watermark)
-    with eng.connect() as cx:
+    # stream_results=True -> psycopg2 server-side cursor: rows arrive in chunks
+    # instead of buffering the whole result client-side (true streaming + low RAM)
+    with eng.connect().execution_options(stream_results=True) as cx:
         yield from pl.read_database(sql, connection=cx, iter_batches=True,
                                     batch_size=page, infer_schema_length=None)
 
